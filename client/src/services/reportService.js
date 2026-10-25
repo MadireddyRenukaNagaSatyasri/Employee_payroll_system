@@ -47,7 +47,7 @@ export const reportService = {
   downloadCsv(endpoint, filename, params = {}) {
     const queryParams = new URLSearchParams({ ...params, format: 'csv' }).toString();
     const token = localStorage.getItem('payroll_admin_token');
-    const baseUrl = import.meta.env.VITE_API_BASE_URL || 'http://localhost:5000/api';
+    const baseUrl = import.meta.env.VITE_API_URL || import.meta.env.VITE_API_BASE_URL || '/api';
     const url = `${baseUrl}${endpoint}?${queryParams}`;
 
     // Fetch as blob with Authorization header
