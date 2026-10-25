@@ -1,5 +1,7 @@
 import Employee from '../models/Employee.js';
+import Payroll from '../models/Payroll.js';
 import generateEmployeeId from '../utils/generateEmployeeId.js';
+import { calculateEmployeePayroll } from '../services/payrollService.js';
 
 /**
  * @desc    Create a new employee
@@ -44,6 +46,22 @@ export const createEmployee = async (req, res, next) => {
       basicSalary: Number(basicSalary),
       bankDetails: bankDetails || {},
     });
+
+    // Automatically generate current month's Draft payroll for the new active employee
+    if (employee.status === 'Active') {
+      try {
+        const now = new Date();
+        const curYear = now.getFullYear();
+        const curMonth = now.getMonth() + 1;
+        const calculated = await calculateEmployeePayroll(employee, curYear, curMonth);
+        await Payroll.create({
+          ...calculated,
+          status: 'Draft',
+        });
+      } catch (payrollErr) {
+        console.warn(`Notice: Could not auto-generate initial payroll draft: ${payrollErr.message}`);
+      }
+    }
 
     res.status(201).json({
       success: true,
@@ -212,6 +230,28 @@ export const updateEmployee = async (req, res, next) => {
     }
 
     const updatedEmployee = await employee.save();
+
+    // If active, sync any current month Draft payroll with the updated salary/details
+    if (updatedEmployee.status === 'Active') {
+      try {
+        const now = new Date();
+        const curYear = now.getFullYear();
+        const curMonth = now.getMonth() + 1;
+        const currentDraft = await Payroll.findOne({
+          employee: updatedEmployee._id,
+          year: curYear,
+          month: curMonth,
+          status: 'Draft',
+        });
+        if (currentDraft) {
+          const freshCalc = await calculateEmployeePayroll(updatedEmployee, curYear, curMonth);
+          Object.assign(currentDraft, freshCalc);
+          await currentDraft.save();
+        }
+      } catch (syncErr) {
+        console.warn(`Draft sync notice: ${syncErr.message}`);
+      }
+    }
 
     res.status(200).json({
       success: true,
