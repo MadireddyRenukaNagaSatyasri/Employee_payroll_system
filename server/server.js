@@ -23,7 +23,7 @@ const startServer = async () => {
 
     const server = app.listen(PORT, '0.0.0.0', () => {
       console.log(`🚀 Server running in ${process.env.NODE_ENV || 'development'} mode on port ${PORT}`);
-      console.log(`🌐 Application URL: http://0.0.0.0:${PORT}`);
+      console.log(`🌐 Application URL: http://localhost:${PORT}`);
       console.log(`🔑 Admin Login: admin@payroll.com / Admin@12345`);
     });
 
